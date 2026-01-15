@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "src": "/venue",
+      "dest": "/venue.html"
+    },
+    {
+      "src": "/advertiser",
+      "dest": "/advertiser.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
