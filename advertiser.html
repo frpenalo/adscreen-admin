@@ -370,6 +370,10 @@
                         <span>📍</span>
                         <span>Locations</span>
                     </li>
+                    <li class="nav-item" onclick="showPage('upload')">
+                    <span>📸</span>
+                    <span>Upload Ad</span>
+                    </li>
                     <li class="nav-item" onclick="showPage('balance')">
                         <span>💰</span>
                         <span>Add Funds</span>
@@ -451,6 +455,68 @@
                 </div>
                 
                 <!-- Balance Page -->
+                <!-- Upload Page -->
+<div id="uploadPage" class="page hidden">
+    <div class="page-header">
+        <h1>Upload Advertisement</h1>
+        <p>Create and submit your ad for approval</p>
+    </div>
+    
+    <div id="uploadSuccess" class="success-msg hidden"></div>
+    <div id="uploadError" class="error hidden"></div>
+    
+    <!-- Step 1: Upload File -->
+    <div id="uploadStep1" class="content-card">
+        <h2>Step 1: Upload Your Image or Video</h2>
+        
+        <div style="border: 3px dashed #e5e7eb; padding: 40px; text-align: center; border-radius: 12px; margin: 20px 0;">
+            <input type="file" id="adFile" accept="image/*,video/*" style="display: none;" onchange="handleFileSelect(event)">
+            <button class="btn btn-primary" onclick="document.getElementById('adFile').click()">
+                📁 Choose File
+            </button>
+            <p style="margin-top: 15px; color: #6b7280;">or</p>
+            <button class="btn btn-primary" onclick="openCamera()">
+                📷 Take Photo
+            </button>
+            <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
+                Supported: JPG, PNG, MP4, MOV (Max 10MB)
+            </p>
+        </div>
+        
+        <div id="filePreview" class="hidden" style="margin-top: 20px; text-align: center;">
+            <img id="previewImage" style="max-width: 100%; max-height: 400px; border-radius: 8px;">
+            <video id="previewVideo" controls style="max-width: 100%; max-height: 400px; border-radius: 8px; display: none;"></video>
+        </div>
+    </div>
+    
+    <!-- Step 2: Edit -->
+    <div id="uploadStep2" class="content-card hidden">
+        <h2>Step 2: Edit Your Ad</h2>
+        
+        <div class="form-group">
+            <label>Ad Title</label>
+            <input type="text" id="adTitle" placeholder="e.g., Summer Sale 50% Off">
+        </div>
+        
+        <div class="form-group">
+            <label>Description (optional)</label>
+            <input type="text" id="adDescription" placeholder="Brief description">
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+            <button class="btn btn-primary" onclick="enhanceWithAI()">
+                ✨ Enhance with AI (Gemini)
+            </button>
+            <button class="btn btn-success" onclick="submitAd()">
+                ✅ Submit for Approval
+            </button>
+        </div>
+        
+        <p style="color: #6b7280; font-size: 0.9rem; margin-top: 10px;">
+            💡 Tip: Use AI to automatically improve your image quality and add professional text overlays
+        </p>
+    </div>
+</div>
                 <div id="balancePage" class="page hidden">
                     <div class="page-header">
                         <h1>Add Funds</h1>
@@ -756,7 +822,167 @@
         function addFunds(amount) {
             alert(`Stripe payment integration will be added here.\n\nAmount to add: $${amount}\n\nThis will redirect to Stripe checkout.`);
         }
+
+        let selectedFile = null;
+
+function showPage(pageName) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    
+    const pageMap = {
+        'dashboard': 'dashboardPage',
+        'campaigns': 'campaignsPage',
+        'locations': 'locationsPage',
+        'upload': 'uploadPage',
+        'balance': 'balancePage'
+    };
+    
+    document.getElementById(pageMap[pageName]).classList.remove('hidden');
+    event.target.closest('.nav-item').classList.add('active');
+    
+    switch(pageName) {
+        case 'dashboard':
+            loadDashboard();
+            break;
+        case 'campaigns':
+            loadCampaigns();
+            break;
+        case 'locations':
+            loadLocations();
+            break;
+        case 'balance':
+            loadBalance();
+            break;
+    }
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+        alert('File too large. Max 10MB');
+        return;
+    }
+    
+    selectedFile = file;
+    const preview = document.getElementById('filePreview');
+    const img = document.getElementById('previewImage');
+    const video = document.getElementById('previewVideo');
+    
+    if (file.type.startsWith('image/')) {
+        img.src = URL.createObjectURL(file);
+        img.style.display = 'block';
+        video.style.display = 'none';
+    } else if (file.type.startsWith('video/')) {
+        video.src = URL.createObjectURL(file);
+        video.style.display = 'block';
+        img.style.display = 'none';
+    }
+    
+    preview.classList.remove('hidden');
+    document.getElementById('uploadStep2').classList.remove('hidden');
+}
+
+function openCamera() {
+    alert('Camera feature: This will open device camera to take a photo directly.\n\nWill be implemented with getUserMedia API.');
+}
+
+async function enhanceWithAI() {
+    if (!selectedFile) {
+        alert('Please upload a file first');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Enhancing with AI...';
+    
+    try {
+        const formData = new FormData();
+        formData.append('image', selectedFile);
         
+        const token = localStorage.getItem('advertiserToken');
+        const response = await fetch(`${API_URL}/advertiser/enhance-ad`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        
+        if (!response.ok) throw new Error('AI enhancement failed');
+        
+        const data = await response.json();
+        alert('✨ Image enhanced successfully!\n\nAI improvements applied.');
+        
+    } catch (error) {
+        alert('AI enhancement: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ Enhance with AI (Gemini)';
+    }
+}
+
+async function submitAd() {
+    if (!selectedFile) {
+        alert('Please upload a file first');
+        return;
+    }
+    
+    const title = document.getElementById('adTitle').value;
+    if (!title) {
+        alert('Please enter an ad title');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Submitting...';
+    
+    const successMsg = document.getElementById('uploadSuccess');
+    const errorMsg = document.getElementById('uploadError');
+    successMsg.classList.add('hidden');
+    errorMsg.classList.add('hidden');
+    
+    try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('title', title);
+        formData.append('description', document.getElementById('adDescription').value);
+        
+        const token = localStorage.getItem('advertiserToken');
+        const response = await fetch(`${API_URL}/advertiser/ads`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Upload failed');
+        }
+        
+        successMsg.textContent = '✅ Ad submitted successfully! It will be reviewed by admin.';
+        successMsg.classList.remove('hidden');
+        
+        // Reset form
+        setTimeout(() => {
+            document.getElementById('adFile').value = '';
+            document.getElementById('adTitle').value = '';
+            document.getElementById('adDescription').value = '';
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('uploadStep2').classList.add('hidden');
+            selectedFile = null;
+            successMsg.classList.add('hidden');
+        }, 3000);
+        
+    } catch (error) {
+        errorMsg.textContent = error.message;
+        errorMsg.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✅ Submit for Approval';
+    }
+}
         function logout() {
             if (confirm('Logout?')) {
                 localStorage.removeItem('advertiserToken');
